@@ -45,7 +45,7 @@ template class Graph<int>; // Explicit instantiation for int
 
 // Function to calculate the cost of a path
 template <typename CostType>
-CostType calculatePathCost(const std::vector<Node>& path, const Graph<CostType>& graph) {
+CostType calculatePathCost(const std::vector<Node<CostType>>& path, const Graph<CostType>& graph) {
     CostType cost = CostType(0);
 
     for (size_t i = 0; i < path.size() - 1; ++i) {
