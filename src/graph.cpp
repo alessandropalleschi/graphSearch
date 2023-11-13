@@ -42,3 +42,28 @@ void Graph<CostType>::addEdge(const Node<CostType> src, const Node<CostType> des
 }
 
 template class Graph<int>; // Explicit instantiation for int
+
+// Function to calculate the cost of a path
+template <typename CostType>
+CostType calculatePathCost(const std::vector<Node>& path, const std::vector<Edge<CostType>>& edges) {
+    CostType cost = CostType(0);
+
+    for (size_t i = 0; i < path.size() - 1; ++i) {
+        // Find the corresponding edge between consecutive nodes
+        auto edgeIt = std::find_if(edges.begin(), edges.end(), [&](const Edge<CostType>& edge) {
+            return edge.source == path[i] && edge.destination == path[i + 1];
+        });
+
+        // If the edge is found, add its weight to the total cost
+        if (edgeIt != edges.end()) {
+            cost += edgeIt->weight;
+        } else {
+            // Handle the case where there is no corresponding edge (optional)
+            std::cerr << "Error: No edge found between nodes " << path[i].ID << " and " << path[i + 1].ID << std::endl;
+            // You may choose to return an error code or throw an exception
+            // Alternatively, you can consider adding a default weight for such cases
+        }
+    }
+
+    return cost;
+}
