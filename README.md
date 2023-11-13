@@ -46,7 +46,7 @@ This project demonstrates a simple implementation in C++ of popular search algor
 
 Run the executable
    ```bash
-   ./graph_search
+   ./graphSearch
 ```
 This will execute the sample main.cpp, demonstrating the usage of Dijkstra's algorithm and A* search algorithm on a graph.
 
