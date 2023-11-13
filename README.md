@@ -77,8 +77,9 @@ edges:
     weight: 2
 
 searchAlgorithms:
-  - Dijkstra
-  - AStar
+  - type: "Dijkstra"
+  - type: "AStar"
+    heuristics: 1
 ```
 ## File Structure
 
