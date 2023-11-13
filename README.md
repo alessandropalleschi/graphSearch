@@ -95,6 +95,30 @@ searchAlgorithms:
   - `searchAlgorithms.hpp`: Header file for the common search algorithms.
 - `config/`: Contains yaml file to create grapg.
   - `graph.yaml`
+ 
+### Node
+   A Node represents a vertex in the graph and has the following attributes:
+
+   - ID: An integer identifier for the node.
+   - name: A string name for the node.
+   - cost: A cost associated with the node (used in Dijkstra's algorithm).
+   - costToGo: A heuristic cost associated with the node (used in A* algorithm).
+
+   The Node class provides methods to set and get the node's cost, set the heuristic cost (for A*), and compare nodes based on their total cost.
+
+### Edge
+   An Edge represents a connection between two nodes in the graph and has the following attributes:
+
+   - source: The source node of the edge.
+   - destination: The destination node of the edge.
+   - weight: The weight or cost associated with the edge.
+### Graph
+The Graph class represents the entire graph and uses an adjacency list to store edges for each node. The addEdge method allows you to add an edge between two nodes in the graph.
+
+### Search Algorithms
+Both Dijkstra's and A* algorithms are implemented as classes (Dijkstra and AStar, respectively) inheriting from a common base class SearchAlgorithm. They use priority queues for efficient node exploration and maintain a cost map to track the minimum cost to reach each node.
+
+
 ## Contributing
 Feel free to contribute by opening issues or pull requests. Contributions are welcome!
 ## License
