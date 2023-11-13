@@ -38,20 +38,23 @@ int main() {
 
     // Perform searches based on the specified algorithms
     for (const auto& algorithm : searchAlgorithms) {
-        if (algorithm.as<std::string>() == "Dijkstra") {
+        std::string algorithmType = algorithm["type"].as<std::string>();
+    
+        if (algorithmType == "Dijkstra") {
             Dijkstra<int> intDijkstra(intGraph);
             std::cout << "\nDijkstra's Path:" << std::endl;
             auto dijkstraPath = intDijkstra.search(startNode, goalNode);
             // Output or handle the result as needed
-        } else if (algorithm.as<std::string>() == "AStar") {
-            AStar<int> intAStar(intGraph, [](const Node<int>& current, const Node<int>& goal) { return abs(goal.ID - current.ID); });
+        } else if (algorithmType == "AStar") {
+            int heuristicType = algorithm["heuristic"].as<int>();
+            AStar<int> intAStar(intGraph, Heuristics<int>::getHeuristicFunction(heuristicType));
             std::cout << "\nA* Path:" << std::endl;
             auto aStarPath = intAStar.search(startNode, goalNode);
             // Output or handle the result as needed
         } else {
-            std::cerr << "Unknown search algorithm: " << algorithm.as<std::string>() << std::endl;
+            std::cerr << "Unknown search algorithm: " << algorithmType << std::endl;
         }
-    }
+}
 
     return 0;
 }
