@@ -54,19 +54,31 @@ This will execute the sample main.cpp, demonstrating the usage of Dijkstra's alg
 
 The project supports configuration via a YAML file. The configuration file is located in the config folder. It defines the graph structure, start and goal nodes, and a list of search algorithms to apply.
   ```yaml
-  nodes: 5
+totalNodes: 5
+
+startNode: 0
+goalNode: 4
+
 edges:
-  - from: 0
-    to: 1
+  - source: 0
+    destination: 1
     weight: 1
-  # Add more edges as needed
+  - source: 1
+    destination: 2
+    weight: 2
+  - source: 2
+    destination: 3
+    weight: 1
+  - source: 3
+    destination: 4
+    weight: 3
+  - source: 0
+    destination: 3
+    weight: 2
 
-start_node: 0
-goal_node: 4
-
-search_algorithms:
-  - dijkstra
-  - astar
+searchAlgorithms:
+  - Dijkstra
+  - AStar
 ```
 ## File Structure
 
