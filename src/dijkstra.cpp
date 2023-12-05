@@ -1,4 +1,4 @@
-#include "Dijkstra.hpp"
+#include "dijkstra.hpp"
 
 // Constructor for Dijkstra class
 template <typename CostType>
@@ -23,9 +23,9 @@ typename Dijkstra<CostType>::Path Dijkstra<CostType>::search(Node<CostType>& sta
         // Get the node with the lowest cost from the priority queue
         Node<CostType> visited_node = toVisit.top();
         toVisit.pop();
-
+        if(visited_node.parent) std::cout << visited_node.parent->ID << std::endl;
         // Check if the node has already been visited with a lower cost
-        if (costMap.find(visited_node) != costMap.end() && visited_node.cost > costMap[visited_node]) {
+        if (costMap.find(visited_node) != costMap.end() && visited_node.costToCome > costMap[visited_node]) {
             continue;
         }
 
@@ -46,6 +46,8 @@ typename Dijkstra<CostType>::Path Dijkstra<CostType>::search(Node<CostType>& sta
             if (costMap.find(adjacent_node) == costMap.end() || newCost < costMap[adjacent_node]) {
                 costMap[adjacent_node] = newCost;
                 adjacent_node.setNodeCost(newCost);
+                adjacent_node.setParent(visited_node);
+                adjacent_node.parent = std::make_shared<Node<CostType>>(visited_node);
                 toVisit.push(adjacent_node);
             }
         }
@@ -57,3 +59,5 @@ typename Dijkstra<CostType>::Path Dijkstra<CostType>::search(Node<CostType>& sta
 
 // Explicit instantiation for int
 template class Dijkstra<int>;
+template class Dijkstra<float>;
+template class Dijkstra<double>;

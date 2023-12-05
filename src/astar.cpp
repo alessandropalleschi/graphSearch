@@ -20,7 +20,7 @@ typename AStar<CostType>::Path AStar<CostType>::search(Node<CostType>& start, No
         Node<CostType> visited_node = toVisit.top();
         toVisit.pop();
 
-        if (costMap.find(visited_node) != costMap.end() && visited_node.cost > costMap[visited_node]) {
+        if (costMap.find(visited_node) != costMap.end() && visited_node.costToGo > costMap[visited_node]) {
             continue;
         }
 
@@ -32,11 +32,11 @@ typename AStar<CostType>::Path AStar<CostType>::search(Node<CostType>& start, No
 
         for (const auto& edge : this->getNeighbours(visited_node)) {
             Node<CostType> adjacent_node = edge.destination;
-            CostType newCost = costMap[visited_node] + edge.weight + getHeuristic(adjacent_node, goal);
+            CostType newCost = costMap[visited_node] + edge.weight;
 
             if (costMap.find(adjacent_node) == costMap.end() || newCost < costMap[adjacent_node]) {
                 costMap[adjacent_node] = newCost;
-                adjacent_node.setNodeCost(newCost, getHeuristic(adjacent_node, goal));
+                adjacent_node.setNodeCost(newCost, this->getHeuristic(adjacent_node, goal));
                 toVisit.push(adjacent_node);
             }
         }
@@ -45,9 +45,12 @@ typename AStar<CostType>::Path AStar<CostType>::search(Node<CostType>& start, No
     return {};
 }
 
+template class AStar<int>;
+template class AStar<float>;
+template class AStar<double>;
 
 template <typename CostType>
-AStar<CostType>::CostType getHeuristic(const Node<CostType>& node, const Node<CostType>& goal) {
+CostType AStar<CostType>::getHeuristic(const Node<CostType>& node, const Node<CostType>& goal) {
     auto it = heuristicCache.find(node);
     if (it != heuristicCache.end()) {
         return it->second; // Return cached value
@@ -58,43 +61,7 @@ AStar<CostType>::CostType getHeuristic(const Node<CostType>& node, const Node<Co
     }
 }
 
-// Explicit instantiation for int
-template class AStar<int>;
-
-template <typename CostType>
-class Heuristics {
-public:
-    // Define different heuristics as static member functions
-    static CostType simpleHeuristic(const Node<CostType>& current, const Node<CostType>& goal) {
-        
-        return abs(goal.ID-current.ID);
-    }
-    /*
-    static CostType customHeuristic(const Node<CostType>& current, const Node<CostType>& goal) {
-        // Implement another heuristic
-       pass;
-    }
-    */
-    static CostType noHeuristic(const Node<CostType>& current, const Node<CostType>& goal) {
-        // Implement another heuristic
-       return CostType(0);
-    }
-
-    // Add more heuristics as needed
-
-    // Function to get a pointer to a specific heuristic function
-    static std::function<CostType(const Node<CostType>&, const Node<CostType>&)> getHeuristicFunction(int heuristicType) {
-        switch (heuristicType) {
-            case 0:
-                return noHeuristic;
-            case 1:
-                return simpleHeuristic;
-            // Add more cases for other heuristics
-            default:
-                // Default to a simple heuristic if the specified type is not recognized
-                return noHeuristic;
-        }
-    }
-};
-// Explicit instantiation for int
 template class Heuristics<int>;
+template class Heuristics<float>;
+template class Heuristics<double>;
+

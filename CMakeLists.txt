@@ -10,15 +10,13 @@ find_package(yaml-cpp REQUIRED)
 # Add the src and include directories
 include_directories(include)
 
-# Add executable
-add_executable(graphSearch src/main.cpp)
-
-# Add source files for the library
-add_library(graphSearchLib
-    src/graph.cpp
-    src/dijkstra.cpp
-    src/astar.cpp
+file(GLOB_RECURSE SRC_FILES
+    src/*.cpp
 )
 
+
+# Add executable
+add_executable(graphSearch ${SRC_FILES})
+
 # Link the library with the executable
-target_link_libraries(graphSearch PRIVATE graphSearchLib)
+target_link_libraries(graphSearch yaml-cpp)

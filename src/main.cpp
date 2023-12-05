@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include "Graph.hpp"
-#include "Dijkstra.hpp"
-#include "AStar.hpp"
+#include "graph.hpp"
+#include "dijkstra.hpp"
+#include "astar.hpp"
 #include "yaml-cpp/yaml.h"
 
 int main() {
@@ -35,7 +35,6 @@ int main() {
     // Get start and goal nodes
     Node<int> startNode = nodes[startNodeID];
     Node<int> goalNode = nodes[goalNodeID];
-
     // Perform searches based on the specified algorithms
     for (const auto& algorithm : searchAlgorithms) {
         std::string algorithmType = algorithm["type"].as<std::string>();
@@ -46,13 +45,18 @@ int main() {
             auto dijkstraPath = intDijkstra.search(startNode, goalNode);
             // Output or handle the result as needed
         } else if (algorithmType == "AStar") {
-            int heuristicType = algorithm["heuristic"].as<int>();
+            int heuristicType = algorithm["heuristics"].as<int>();
             AStar<int> intAStar(intGraph, Heuristics<int>::getHeuristicFunction(heuristicType));
             std::cout << "\nA* Path:" << std::endl;
             auto aStarPath = intAStar.search(startNode, goalNode);
             // Output or handle the result as needed
         } else {
             std::cerr << "Unknown search algorithm: " << algorithmType << std::endl;
+        }
+        Node<int>* current = &goalNode;
+        while(current->parent) {
+            std::cout << current->ID << " "<< std::endl;
+            break;
         }
 }
 

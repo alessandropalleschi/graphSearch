@@ -22,5 +22,3 @@ edges:
 
 searchAlgorithms:
   - type: "Dijkstra"
-  - type: "AStar"
-    heuristics: 1

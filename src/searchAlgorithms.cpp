@@ -1,4 +1,4 @@
-#include "searchAlgorithm.hpp"
+#include "searchAlgorithms.hpp"
 
 template <typename CostType>
 SearchAlgorithm<CostType>::SearchAlgorithm(const Graph<CostType>& g) : graph(g) {}
@@ -13,6 +13,8 @@ std::vector<Edge<CostType>> SearchAlgorithm<CostType>::getNeighbours(const Node<
 }
 
 template class SearchAlgorithm<int>; // Explicit instantiation for int
+template class SearchAlgorithm<float>; // Explicit instantiation for int
+template class SearchAlgorithm<double>; // Explicit instantiation for int
 
 template <typename CostType>
 bool Compare<CostType>::operator()(Node<CostType>& a, Node<CostType>& b) {
@@ -23,5 +25,7 @@ bool Compare<CostType>::operator()(Node<CostType>& a, Node<CostType>& b) {
 }
 
 template class Compare<int>; // Explicit instantiation for int
+template class Compare<float>; // Explicit instantiation for int
+template class Compare<double>; // Explicit instantiation for int
 
 

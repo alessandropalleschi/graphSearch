@@ -4,6 +4,7 @@
 #include <vector>
 #include <functional>
 #include "graph.hpp"
+#include <queue>
 
 /**
  * @brief Base class for search algorithms.
