@@ -2,53 +2,51 @@
 
 // Constructor for Dijkstra class
 template <typename CostType>
-Dijkstra<CostType>::Dijkstra(const Graph<CostType>& g) : SearchAlgorithm<CostType>(g) {}
+Dijkstra<CostType>::Dijkstra(const Graph<CostType>& graph) : SearchAlgorithm<CostType>(graph) {}
 
 // Dijkstra's search algorithm implementation
 template <typename CostType>
 typename Dijkstra<CostType>::Path Dijkstra<CostType>::search(Node<CostType>& start, Node<CostType>& goal) {
     Path path;
-    // Priority queue to store nodes to visit, using the custom Compare class for ordering
-    std::priority_queue<Node<CostType>, std::vector<Node<CostType>>, Compare<CostType>> toVisit;
-    // Map to store the cost of reaching each node
-    std::unordered_map<Node<CostType>, CostType> costMap;
+    using NodeType = Node<CostType>;
+    using NodePtr = std::shared_ptr<NodeType>;
 
-    // Initialize start node's cost and add it to the priority queue
+    std::priority_queue<NodeType, std::vector<NodeType>, Compare<CostType>> toVisit;
+    std::unordered_map<NodeType, CostType> costMap;
+
+    // Initialize start node's cost and add it to the queue
     start.setNodeCost(CostType(0));
     toVisit.push(start);
     costMap[start] = CostType(0);
 
-    // Main loop for Dijkstra's search
     while (!toVisit.empty()) {
-        // Get the node with the lowest cost from the priority queue
-        Node<CostType> visited_node = toVisit.top();
+        NodeType currentNode = toVisit.top();
         toVisit.pop();
-        if(visited_node.parent) std::cout << visited_node.parent->ID << std::endl;
-        // Check if the node has already been visited with a lower cost
-        if (costMap.find(visited_node) != costMap.end() && visited_node.costToCome > costMap[visited_node]) {
+
+        // Skip if this path is outdated
+        if (currentNode.costToCome > costMap[currentNode]) {
             continue;
         }
 
-        // Add the visited node to the path
-        path.push_back(visited_node);
+        // Add visited node to the path
+        path.push_back(currentNode);
 
-        // Check if the goal has been reached
-        if (visited_node == goal) {
+        // Goal reached
+        if (currentNode == goal) {
             return path;
         }
 
-        // Explore neighbors of the current node
-        for (const auto& edge : this->getNeighbours(visited_node)) {
-            Node<CostType> adjacent_node = edge.destination;
-            CostType newCost = costMap[visited_node] + edge.weight;
+        // Explore neighbors
+        for (const auto& edge : this->getNeighbours(currentNode)) {
+            NodeType adjacentNode = edge.destination;
+            CostType newCost = costMap[currentNode] + edge.weight;
 
-            // If the new cost is smaller, update the cost and add to the priority queue
-            if (costMap.find(adjacent_node) == costMap.end() || newCost < costMap[adjacent_node]) {
-                costMap[adjacent_node] = newCost;
-                adjacent_node.setNodeCost(newCost);
-                adjacent_node.setParent(visited_node);
-                adjacent_node.parent = std::make_shared<Node<CostType>>(visited_node);
-                toVisit.push(adjacent_node);
+            if (costMap.find(adjacentNode) == costMap.end() || newCost < costMap[adjacentNode]) {
+                costMap[adjacentNode] = newCost;
+                adjacentNode.setNodeCost(newCost);
+                adjacentNode.setParent(currentNode);
+                adjacentNode.parent = std::make_shared<NodeType>(currentNode); // Proper use of shared_ptr
+                toVisit.push(adjacentNode);
             }
         }
     }
@@ -57,7 +55,7 @@ typename Dijkstra<CostType>::Path Dijkstra<CostType>::search(Node<CostType>& sta
     return {};
 }
 
-// Explicit instantiation for int
+// Explicit instantiation for supported types
 template class Dijkstra<int>;
 template class Dijkstra<float>;
 template class Dijkstra<double>;
