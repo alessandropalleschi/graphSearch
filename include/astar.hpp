@@ -8,13 +8,13 @@ template <typename CostType>
 class AStar : public SearchAlgorithm<CostType> {
 private:
     std::function<CostType(const Node<CostType>&, const Node<CostType>&)> heuristicFunction;
+    std::unordered_map<Node<CostType>, CostType> heuristicCache;
 
 public:
     using Path = std::vector<Node<CostType>>;
-    AStar(const Graph<CostType>& g, std::function<CostType(const Node<CostType>&, const Node<CostType>&)> heuristic);
+    AStar(const Graph<CostType>& graph, std::function<CostType(const Node<CostType>&, const Node<CostType>&)> heuristic);
     CostType getHeuristic(const Node<CostType>& node, const Node<CostType>& goal);
     Path search(Node<CostType>& start, Node<CostType>& goal) override;
-    std::unordered_map<Node<CostType>,CostType> heuristicCache;
 };
 
 
@@ -23,21 +23,12 @@ class Heuristics {
 public:
     // Define different heuristics as static member functions
     static CostType simpleHeuristic(const Node<CostType>& current, const Node<CostType>& goal) {
-        
-        return abs(goal.ID-current.ID);
-    }
-    /*
-    static CostType customHeuristic(const Node<CostType>& current, const Node<CostType>& goal) {
-        // Implement another heuristic
-       pass;
-    }
-    */
-    static CostType noHeuristic(const Node<CostType>& current, const Node<CostType>& goal) {
-        // Implement another heuristic
-       return CostType(0);
+        return abs(goal.ID - current.ID);
     }
 
-    // Add more heuristics as needed
+    static CostType noHeuristic(const Node<CostType>& current, const Node<CostType>& goal) {
+        return CostType(0);
+    }
 
     // Function to get a pointer to a specific heuristic function
     static std::function<CostType(const Node<CostType>&, const Node<CostType>&)> getHeuristicFunction(int heuristicType) {
@@ -46,13 +37,10 @@ public:
                 return noHeuristic;
             case 1:
                 return simpleHeuristic;
-            // Add more cases for other heuristics
             default:
-                // Default to a simple heuristic if the specified type is not recognized
-                return noHeuristic;
+                return noHeuristic; // Default if type not recognized
         }
     }
 };
-
 
 #endif // ASTAR_HPP
