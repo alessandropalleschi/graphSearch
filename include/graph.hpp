@@ -19,55 +19,53 @@ class Node {
 public:
     int ID;
     std::string name;
-    CostType costToCome;
-    CostType costToGo;
-    CostType cost;
-    std::shared_ptr<Node<CostType>> parent;
-    
-    Node(const int& ID, const std::string& name, const CostType costToCome = std::numeric_limits<CostType>::max(), const CostType costToGo = CostType(0), std::shared_ptr<Node<CostType>> parent=nullptr);
+    CostType costToCome = std::numeric_limits<CostType>::max();
+    CostType costToGo = CostType(0);
+    CostType cost = CostType(0);
+    std::shared_ptr<Node<CostType>> parent = nullptr;
 
-    // Copy constructor
+    Node(int ID, const std::string& name, CostType costToCome = std::numeric_limits<CostType>::max(), CostType costToGo = CostType(0), std::shared_ptr<Node<CostType>> parent = nullptr)
+        : ID(ID), name(name), costToCome(costToCome), costToGo(costToGo), parent(parent) {}
+
+    // Copy constructor with improved deep copy logic
     Node(const Node<CostType>& other)
-        : ID(other.ID), name(other.name), costToCome(other.costToCome), costToGo(other.costToGo) {
-        // Deep copy the parent if it exists
+        : ID(other.ID), name(other.name), costToCome(other.costToCome), costToGo(other.costToGo), cost(other.cost) {
         if (other.parent) {
             parent = std::make_shared<Node<CostType>>(*other.parent);
         }
     }
 
     // Move constructor
-    Node(Node<CostType>&& other) noexcept
-        : ID(std::exchange(other.ID, 0)),
-          name(std::move(other.name)),
-          costToCome(std::exchange(other.costToCome, CostType())),
-          costToGo(std::exchange(other.costToGo, CostType())),
-          parent(std::move(other.parent)) {}
+    Node(Node<CostType>&& other) noexcept = default;
 
-    // Copy assignment operator
+    // Copy assignment operator with improved deep copy logic
     Node& operator=(const Node<CostType>& other) {
         if (this != &other) {
             ID = other.ID;
             name = other.name;
             costToGo = other.costToGo;
             costToCome = other.costToCome;
-
-            // Deep copy the parent if it exists
-            if (other.parent) {
-                parent = std::make_shared<Node<CostType>>(*other.parent);
-            } else {
-                parent.reset(); // No parent in the other node, so reset the current parent
-            }
+            cost = other.cost;
+            parent = other.parent ? std::make_shared<Node<CostType>>(*other.parent) : nullptr;
         }
         return *this;
     }
 
-    // Function to set the parent, replacing the existing parent
-    void setParent(Node<CostType>& Parent);
-    void setNodeCost(const CostType& costToCome, const CostType& costToGo);
-    void setCostToCome(const CostType& costToCome);
-    CostType getNodeCost() const;
-    bool operator==(const Node& other) const;
+    // Set parent node
+    void setParent(Node<CostType>& Parent) { parent = std::make_shared<Node<CostType>>(Parent); }
 
+    // Set node cost values
+    void setNodeCost(const CostType& costToCome, const CostType& costToGo) {
+        this->costToCome = costToCome;
+        this->costToGo = costToGo;
+        this->cost = costToCome + costToGo;
+    }
+
+    void setCostToCome(const CostType& costToCome) { this->costToCome = costToCome; }
+
+    CostType getNodeCost() const { return cost; }
+
+    bool operator==(const Node& other) const { return ID == other.ID; }
 };
 
 // Custom hash function specialization for Node<CostType>
@@ -82,31 +80,29 @@ namespace std {
 
 /**
  * @brief Class representing an edge in the graph.
- * 
- * This class defines an edge with a source node, destination node, and weight.
  */
 template <typename CostType>
 class Edge {
 public:
-    const Node<CostType> source;
-    const Node<CostType> destination;
-    const CostType weight;
+    Node<CostType> source;
+    Node<CostType> destination;
+    CostType weight;
 
-    Edge(const Node<CostType>& src, const Node<CostType>& dest, const CostType w);
+    Edge(const Node<CostType>& src, const Node<CostType>& dest, const CostType w)
+        : source(src), destination(dest), weight(w) {}
 };
 
 /**
  * @brief Class representing a graph.
- * 
- * This class contains an adjacency list to represent the graph structure and provides methods to add edges.
  */
 template <typename CostType>
 class Graph {
 public:
     std::unordered_map<Node<CostType>, std::vector<Edge<CostType>>> adjList;
 
-    void addEdge(const Node<CostType>& src, const Node<CostType>& dest, CostType weight);
+    void addEdge(const Node<CostType>& src, const Node<CostType>& dest, CostType weight) {
+        adjList[src].emplace_back(src, dest, weight);
+    }
 };
-
 
 #endif // GRAPH_HPP
