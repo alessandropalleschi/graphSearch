@@ -1,129 +1,80 @@
 # graphSearch
-This project demonstrates a simple implementation in C++ of popular search algorithms. It includes a graph representation, Dijkstra's algorithm, and A* algorithm.
 
-## Table of Contents
+A small, header-only C++17 library implementing **Dijkstra** and **A\*** on weighted directed graphs, with a YAML-driven CLI, tests and benchmarks.
 
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [File Structure](#file-structure)
-- [Contributing](#contributing)
-- [License](#license)
+## Layout
 
-## Features
-
-- Dijkstra's algorithm for finding the shortest path in a graph.
-- A* search algorithm, an informed search algorithm using a heuristic function.
-- Flexible graph representation supporting various graph structures.
-- Customizable node and edge classes.
-- YAML configuration for defining graphs, start and goal nodes, and search algorithms.
-
-## Prerequisites
-
-- C++20
-- CMake
-- yaml-cpp
-
-## Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/alessandropalleschi/graphSearch.git
-
-2. Navigate to the project directory:
-   ```bash
-   cd graphSearch
-   mkdir build && cd build
-
-3. Build the project using CMake:
-   ```bash
-    cmake ..
-    make
-## Usage
-
-Run the executable
-   ```bash
-   ./graphSearch
 ```
-This will execute the sample main.cpp, demonstrating the usage of Dijkstra's algorithm and A* search algorithm on a graph.
+include/graphsearch/   header-only library (graph.hpp, search.hpp, config.hpp)
+src/                   CLI (main.cpp) and YAML loader (config.cpp)
+config/graph.yaml      sample problem
+tests/                 unit tests (run with ctest)
+benchmarks/            Dijkstra vs A* benchmark + grid helpers
+examples/              grid_astar.cpp: A* with a custom heuristic
+```
 
-## Configuration
+## Build
 
-The project supports configuration via a YAML file. The configuration file is located in the config folder. It defines the graph structure, start and goal nodes, and a list of search algorithms to apply.
-  ```yaml
+Requires CMake >= 3.14, a C++17 compiler, and yaml-cpp (only for the CLI; disable with `-DGRAPHSEARCH_BUILD_APP=OFF`).
+
+```bash
+cmake -S . -B build
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+## Use as a library
+
+```cpp
+#include "graphsearch/search.hpp"
+using namespace graphsearch;
+
+Graph<double> g(5);
+g.addEdge(0, 1, 1.0);
+// ...
+auto r = dijkstra(g, 0, 4);                    // r.found, r.path, r.cost, r.expanded
+auto a = astar<double>(g, 0, 4, myHeuristic);  // heuristic: (node, goal) -> estimate
+```
+
+Edge weights must be non-negative (enforced). A* is optimal when the heuristic is admissible and consistent.
+
+## CLI
+
+```bash
+./build/graphSearch config/graph.yaml
+```
+
+```yaml
 totalNodes: 5
-
 startNode: 0
 goalNode: 4
-
 edges:
-  - source: 0
-    destination: 1
-    weight: 1
-  - source: 1
-    destination: 2
-    weight: 2
-  - source: 2
-    destination: 3
-    weight: 1
-  - source: 3
-    destination: 4
-    weight: 3
-  - source: 0
-    destination: 3
-    weight: 2
-
+  - {source: 0, destination: 1, weight: 1}
 searchAlgorithms:
   - type: "Dijkstra"
-  - type: "AStar"
-    heuristics: 1
+  - type: "AStar"   # zero heuristic here (no coordinates in the YAML), i.e. same as Dijkstra
 ```
-## File Structure
 
-- `src/`: Contains the source files.
-  - `main.cpp`: The main program demonstrating the usage of the pathfinding algorithms.
-  - `graph.cpp`: Implementation of the graph representation.
-  - `dijkstra.cpp`: Implementation of Dijkstra's algorithm.
-  - `astar.cpp`: Implementation of the A* algorithm.
+## Benchmarks
 
-- `include/`: Contains header files.
-  - `graph.hpp`: Header file for the graph representation.
-  - `dijkstra.hpp`: Header file for Dijkstra's algorithm.
-  - `astar.hpp`: Header file for the A* algorithm.
-  - `searchAlgorithms.hpp`: Header file for the common search algorithms.
-- `config/`: Contains yaml file to create grapg.
-  - `graph.yaml`
- 
-### Node
-   A Node represents a vertex in the graph and has the following attributes:
+```bash
+./build/bench
+```
 
-   - ID: An integer identifier for the node.
-   - name: A string name for the node.
-   - cost: A cost associated with the node (used in Dijkstra's algorithm).
-   - costToGo: A heuristic cost associated with the node (used in A* algorithm).
+Random N×N 8-connected grids, 20% obstacles, corner to corner, Release build (median of several runs):
 
-   The Node class provides methods to set and get the node's cost, set the heuristic cost (for A*), and compare nodes based on their total cost.
+| grid | Dijkstra ms | A* ms | Dijkstra expanded | A* expanded | speedup |
+|---|---|---|---|---|---|
+| 64×64 | 0.28 | 0.015 | 3,308 | 267 | 18.7× |
+| 256×256 | 7.8 | 0.98 | 52,586 | 4,094 | 8.0× |
+| 1024×1024 | 181 | 31.3 | 839,070 | 77,210 | 5.8× |
 
-### Edge
-   An Edge represents a connection between two nodes in the graph and has the following attributes:
+Both return identical optimal costs. Numbers vary by machine.
 
-   - source: The source node of the edge.
-   - destination: The destination node of the edge.
-   - weight: The weight or cost associated with the edge.
-### Graph
-The Graph class represents the entire graph and uses an adjacency list to store edges for each node. The addEdge method allows you to add an edge between two nodes in the graph.
+## What changed from v1
 
-### Search Algorithms
-Both Dijkstra's and A* algorithms are implemented as classes (Dijkstra and AStar, respectively) inheriting from a common base class SearchAlgorithm. They use priority queues for efficient node exploration and maintain a cost map to track the minimum cost to reach each node.
+The previous version did not compile (mismatched `setNodeCost` signatures, template classes split across `.cpp` files, undeclared `Compare` members) and was incorrect: A* skipped stale entries using the wrong field, and each node deep-copied its whole parent chain. It is now a header-only library using integer node ids, parent arrays, lazy-deletion priority queues, input validation, tests and CI.
 
-
-## Contributing
-Feel free to contribute by opening issues or pull requests. Contributions are welcome!
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
 
-
-
+MIT, see LICENSE.

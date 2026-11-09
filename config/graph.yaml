@@ -4,21 +4,12 @@ startNode: 0
 goalNode: 4
 
 edges:
-  - source: 0
-    destination: 1
-    weight: 1
-  - source: 1
-    destination: 2
-    weight: 2
-  - source: 2
-    destination: 3
-    weight: 1
-  - source: 3
-    destination: 4
-    weight: 3
-  - source: 0
-    destination: 3
-    weight: 2
+  - {source: 0, destination: 1, weight: 1}
+  - {source: 1, destination: 2, weight: 2}
+  - {source: 2, destination: 3, weight: 1}
+  - {source: 3, destination: 4, weight: 3}
+  - {source: 0, destination: 3, weight: 2}
 
 searchAlgorithms:
   - type: "Dijkstra"
+  - type: "AStar"

@@ -1,22 +1,50 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14)
+project(graphSearch VERSION 2.0.0 LANGUAGES CXX)
 
-project(graphSearch)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
-# Set C++ standard to C++20
-set(CMAKE_CXX_STANDARD 20)
+option(GRAPHSEARCH_BUILD_APP "Build the YAML-driven CLI (needs yaml-cpp)" ON)
+option(GRAPHSEARCH_BUILD_TESTS "Build tests" ON)
+option(GRAPHSEARCH_BUILD_BENCHMARKS "Build benchmarks" ON)
 
-find_package(yaml-cpp REQUIRED)
+# Header-only core library
+add_library(graphsearch INTERFACE)
+add_library(graphsearch::graphsearch ALIAS graphsearch)
+target_include_directories(graphsearch INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(graphsearch INTERFACE cxx_std_17)
 
-# Add the src and include directories
-include_directories(include)
+function(graphsearch_warnings target)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+  endif()
+endfunction()
 
-file(GLOB_RECURSE SRC_FILES
-    src/*.cpp
-)
+if(GRAPHSEARCH_BUILD_APP)
+  find_package(yaml-cpp REQUIRED)
+  add_executable(graphSearch src/main.cpp src/config.cpp)
+  target_link_libraries(graphSearch PRIVATE graphsearch yaml-cpp)
+  graphsearch_warnings(graphSearch)
+endif()
 
+add_executable(grid_astar examples/grid_astar.cpp)
+target_link_libraries(grid_astar PRIVATE graphsearch)
 
-# Add executable
-add_executable(graphSearch ${SRC_FILES})
+if(GRAPHSEARCH_BUILD_TESTS)
+  enable_testing()
+  add_executable(test_search tests/test_search.cpp)
+  target_link_libraries(test_search PRIVATE graphsearch)
+  graphsearch_warnings(test_search)
+  add_test(NAME search COMMAND test_search)
+endif()
 
-# Link the library with the executable
-target_link_libraries(graphSearch yaml-cpp)
+if(GRAPHSEARCH_BUILD_BENCHMARKS)
+  add_executable(bench benchmarks/bench.cpp)
+  target_link_libraries(bench PRIVATE graphsearch)
+  graphsearch_warnings(bench)
+endif()
