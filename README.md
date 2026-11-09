@@ -1,129 +1,118 @@
 # graphSearch
-This project demonstrates a simple implementation in C++ of popular search algorithms. It includes a graph representation, Dijkstra's algorithm, and A* algorithm.
 
-## Table of Contents
+A header-only C++20 library of shortest-path algorithms on weighted directed graphs, plus a YAML-driven CLI, tests, benchmarks and CI.
 
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [File Structure](#file-structure)
-- [Contributing](#contributing)
-- [License](#license)
+| Algorithm | Function | Notes |
+|---|---|---|
+| Dijkstra | `dijkstra` | non-negative weights |
+| A\* | `astar` | optimal with an admissible heuristic; inconsistent heuristics are handled (nodes are re-opened) |
+| Weighted A\* | `weightedAstar` | priority `g + w·h`, cost ≤ `w ×` optimal |
+| Greedy best-first | `greedyBestFirst` | fast, not optimal |
+| Bidirectional Dijkstra | `bidirectionalDijkstra` | pass `g.reversed()` to reuse it across queries |
+| BFS | `bfs` | fewest edges |
+| Bellman-Ford | `bellmanFord` | negative weights, detects reachable negative cycles |
 
-## Features
+## Layout
 
-- Dijkstra's algorithm for finding the shortest path in a graph.
-- A* search algorithm, an informed search algorithm using a heuristic function.
-- Flexible graph representation supporting various graph structures.
-- Customizable node and edge classes.
-- YAML configuration for defining graphs, start and goal nodes, and search algorithms.
-
-## Prerequisites
-
-- C++20
-- CMake
-- yaml-cpp
-
-## Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/alessandropalleschi/graphSearch.git
-
-2. Navigate to the project directory:
-   ```bash
-   cd graphSearch
-   mkdir build && cd build
-
-3. Build the project using CMake:
-   ```bash
-    cmake ..
-    make
-## Usage
-
-Run the executable
-   ```bash
-   ./graphSearch
 ```
-This will execute the sample main.cpp, demonstrating the usage of Dijkstra's algorithm and A* search algorithm on a graph.
+include/graphsearch/   header-only library: graph.hpp (CSR graph), search.hpp, heuristics.hpp
+src/                   YAML loader (config.*) and CLI (main.cpp)
+config/graph.yaml      sample problem
+tests/                 unit tests, run with ctest
+benchmarks/            benchmark harness + grid / random-graph generators
+examples/              grid_astar.cpp
+cmake/                 package config for find_package(graphsearch)
+```
 
-## Configuration
+## Build
 
-The project supports configuration via a YAML file. The configuration file is located in the config folder. It defines the graph structure, start and goal nodes, and a list of search algorithms to apply.
-  ```yaml
+Requires CMake ≥ 3.14 and a C++20 compiler. yaml-cpp is only needed for the CLI (`-DGRAPHSEARCH_BUILD_APP=OFF` to skip it).
+
+```bash
+cmake -S . -B build
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+Options: `GRAPHSEARCH_BUILD_TESTS`, `GRAPHSEARCH_BUILD_BENCHMARKS`, `GRAPHSEARCH_WERROR`, `GRAPHSEARCH_SANITIZE` (ASan + UBSan).
+
+## Use as a library
+
+```cpp
+#include <graphsearch/search.hpp>
+using namespace graphsearch;
+
+Graph<double> g(5);
+g.addEdge(0, 1, 1.0);
+g.addEdge(1, 4, 2.0);
+g.finalize();                                  // packs edges into CSR; required before searching
+
+auto r = dijkstra(g, 0, 4);                    // r.found, r.path, r.cost, r.expanded
+auto a = astar(g, 0, 4, gridOctile<double>(width));
+```
+
+Install and consume from another project:
+
+```bash
+cmake --install build --prefix /opt/graphsearch
+```
+```cmake
+find_package(graphsearch REQUIRED)
+target_link_libraries(app PRIVATE graphsearch::graphsearch)
+```
+
+Heuristics: `zeroHeuristic`, `euclidean`, `manhattan`, `octile` (from node coordinates) and `gridOctile` (from ids on a row-major grid). Any `(NodeId, NodeId) -> Cost` callable works.
+
+## CLI and YAML
+
+```bash
+./build/graphSearch config/graph.yaml
+```
+
+```yaml
 totalNodes: 5
-
 startNode: 0
 goalNode: 4
-
+nodes:                       # optional; enables coordinate heuristics
+  - {id: 0, x: 0, y: 0}
 edges:
-  - source: 0
-    destination: 1
-    weight: 1
-  - source: 1
-    destination: 2
-    weight: 2
-  - source: 2
-    destination: 3
-    weight: 1
-  - source: 3
-    destination: 4
-    weight: 3
-  - source: 0
-    destination: 3
-    weight: 2
-
+  - {source: 0, destination: 1, weight: 1}
 searchAlgorithms:
-  - type: "Dijkstra"
-  - type: "AStar"
-    heuristics: 1
+  - type: Dijkstra           # Dijkstra | Bidirectional | BellmanFord | BFS
+  - type: AStar              # AStar | WeightedAStar | Greedy
+    heuristic: euclidean     # zero | euclidean | manhattan | octile (default: euclidean if nodes given, else zero)
+  - type: WeightedAStar
+    heuristic: euclidean
+    weight: 1.5
 ```
-## File Structure
 
-- `src/`: Contains the source files.
-  - `main.cpp`: The main program demonstrating the usage of the pathfinding algorithms.
-  - `graph.cpp`: Implementation of the graph representation.
-  - `dijkstra.cpp`: Implementation of Dijkstra's algorithm.
-  - `astar.cpp`: Implementation of the A* algorithm.
+## Benchmarks
 
-- `include/`: Contains header files.
-  - `graph.hpp`: Header file for the graph representation.
-  - `dijkstra.hpp`: Header file for Dijkstra's algorithm.
-  - `astar.hpp`: Header file for the A* algorithm.
-  - `searchAlgorithms.hpp`: Header file for the common search algorithms.
-- `config/`: Contains yaml file to create grapg.
-  - `graph.yaml`
- 
-### Node
-   A Node represents a vertex in the graph and has the following attributes:
+```bash
+./build/bench                 # table
+./build/bench --csv           # or --json, for tracking over time
+./build/bench --quick         # small sizes (used in CI)
+```
 
-   - ID: An integer identifier for the node.
-   - name: A string name for the node.
-   - cost: A cost associated with the node (used in Dijkstra's algorithm).
-   - costToGo: A heuristic cost associated with the node (used in A* algorithm).
+Release build, median of several runs, on this CI-class machine (numbers vary by hardware). Grids are N×N, 8-connected, 20% obstacles, corner to corner.
 
-   The Node class provides methods to set and get the node's cost, set the heuristic cost (for A*), and compare nodes based on their total cost.
+| Scenario | Algorithm | ms | expanded | cost |
+|---|---|---|---|---|
+| grid 1024² | Dijkstra | 136 | 839,070 | 1487.75 |
+| grid 1024² | Bidirectional | 135 | 617,161 | 1487.75 |
+| grid 1024² | **A\*** (octile) | **28** | 77,568 | 1487.75 |
+| grid 1024² | Weighted A\* (w=2) | 1.3 | 1,161 | 1512.49 (+1.7%) |
+| grid 1024² | Greedy | 1.2 | 1,149 | 1530.67 (+2.9%) |
+| random 500k nodes, 2.5M edges | Dijkstra | 176 | 277,668 | 42 |
+| random 500k nodes, 2.5M edges | **Bidirectional** | **1.3** | 793 | 42 |
+| random 500k nodes, 2.5M edges | Bellman-Ford | 259 | 16 passes | 42 |
 
-### Edge
-   An Edge represents a connection between two nodes in the graph and has the following attributes:
+On grids, A\* with a good heuristic wins; on sparse random graphs (no usable heuristic), bidirectional search wins by orders of magnitude. All exact algorithms return identical costs.
 
-   - source: The source node of the edge.
-   - destination: The destination node of the edge.
-   - weight: The weight or cost associated with the edge.
-### Graph
-The Graph class represents the entire graph and uses an adjacency list to store edges for each node. The addEdge method allows you to add an edge between two nodes in the graph.
+## Testing
 
-### Search Algorithms
-Both Dijkstra's and A* algorithms are implemented as classes (Dijkstra and AStar, respectively) inheriting from a common base class SearchAlgorithm. They use priority queues for efficient node exploration and maintain a cost map to track the minimum cost to reach each node.
+`ctest` runs unit tests that cross-check every algorithm against Floyd-Warshall on hundreds of random graphs (including negative weights for Bellman-Ford), check A\* ≡ Dijkstra on random grids, cover an inconsistent-heuristic case, input validation, CSR behaviour, and the YAML loader. CI runs GCC and Clang (Debug and Release, `-Werror`), an ASan/UBSan job, and an install + `find_package` check.
 
-
-## Contributing
-Feel free to contribute by opening issues or pull requests. Contributions are welcome!
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
 
-
-
+MIT, see LICENSE.

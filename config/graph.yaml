@@ -1,24 +1,32 @@
 totalNodes: 5
-
 startNode: 0
 goalNode: 4
 
+# Optional coordinates. They enable the euclidean / manhattan / octile heuristics.
+# Edge weights should be >= the straight-line distance for euclidean to stay admissible.
+nodes:
+  - {id: 0, x: 0, y: 0}
+  - {id: 1, x: 1, y: 0}
+  - {id: 2, x: 2, y: 0}
+  - {id: 3, x: 2, y: 1}
+  - {id: 4, x: 4, y: 1}
+
 edges:
-  - source: 0
-    destination: 1
-    weight: 1
-  - source: 1
-    destination: 2
-    weight: 2
-  - source: 2
-    destination: 3
-    weight: 1
-  - source: 3
-    destination: 4
-    weight: 3
-  - source: 0
-    destination: 3
-    weight: 2
+  - {source: 0, destination: 1, weight: 1}
+  - {source: 1, destination: 2, weight: 1}
+  - {source: 2, destination: 3, weight: 1}
+  - {source: 3, destination: 4, weight: 2}
+  - {source: 0, destination: 3, weight: 2.5}
 
 searchAlgorithms:
-  - type: "Dijkstra"
+  - type: Dijkstra
+  - type: Bidirectional
+  - type: BellmanFord
+  - type: BFS
+  - type: AStar
+    heuristic: euclidean
+  - type: WeightedAStar
+    heuristic: euclidean
+    weight: 1.5
+  - type: Greedy
+    heuristic: euclidean
