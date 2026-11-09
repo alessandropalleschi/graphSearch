@@ -1,10 +1,11 @@
 #pragma once
-// Shared helpers: grid graphs with obstacles, used by examples and benchmarks.
+// Shared helpers: grid graphs with obstacles, used by examples, tests and benchmarks.
 #include <cmath>
 #include <cstdint>
 #include <random>
 
 #include "graphsearch/graph.hpp"
+#include "graphsearch/heuristics.hpp"
 #include "graphsearch/search.hpp"
 
 namespace gridutil {
@@ -15,7 +16,7 @@ struct Grid {
     std::size_t id(std::size_t x, std::size_t y) const { return y * w + x; }
 };
 
-/// 8-connected grid; each cell blocked with probability `obstacle`. Start/goal corners stay free.
+/// 8-connected grid; each cell blocked with probability `obstacle`. Corners stay free.
 inline Grid makeGrid(std::size_t w, std::size_t h, double obstacle, std::uint32_t seed) {
     std::mt19937 rng(seed);
     std::uniform_real_distribution<double> u(0.0, 1.0);
@@ -35,16 +36,21 @@ inline Grid makeGrid(std::size_t w, std::size_t h, double obstacle, std::uint32_
                     grid.g.addEdge(grid.id(x, y), grid.id(nx, ny), dx && dy ? std::sqrt(2.0) : 1.0);
                 }
         }
+    grid.g.finalize();
     return grid;
 }
 
-/// Octile distance: admissible and consistent for 8-connected grids.
-inline graphsearch::Heuristic<double> octile(std::size_t w) {
-    return [w](graphsearch::NodeId a, graphsearch::NodeId b) {
-        double dx = std::abs(double(a % w) - double(b % w));
-        double dy = std::abs(double(a / w) - double(b / w));
-        return (dx + dy) + (std::sqrt(2.0) - 2.0) * std::min(dx, dy);
-    };
+/// Random sparse digraph: `degree` random out-edges per node (weights 1..10) plus a slow
+/// chain (weight 20) so that every node is reachable from node 0.
+inline graphsearch::Graph<double> makeRandomGraph(std::size_t n, int degree, std::uint32_t seed) {
+    std::mt19937 rng(seed);
+    graphsearch::Graph<double> g(n);
+    for (std::size_t u = 0; u < n; ++u) {
+        if (u + 1 < n) g.addEdge(u, u + 1, 20);
+        for (int k = 0; k < degree; ++k) g.addEdge(u, rng() % n, 1 + rng() % 10);
+    }
+    g.finalize();
+    return g;
 }
 
 }  // namespace gridutil

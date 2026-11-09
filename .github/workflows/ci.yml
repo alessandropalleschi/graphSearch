@@ -2,11 +2,40 @@ name: CI
 on: [push, pull_request]
 jobs:
   build:
+    name: ${{ matrix.cxx }} / ${{ matrix.type }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx: [g++, clang++]
+        type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libyaml-cpp-dev
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DGRAPHSEARCH_WERROR=ON
+      - run: cmake --build build -j
+      - run: ctest --test-dir build --output-on-failure
+      - run: ./build/bench --quick --csv
+
+  sanitizers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y libyaml-cpp-dev
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGRAPHSEARCH_SANITIZE=ON -DGRAPHSEARCH_WERROR=ON
       - run: cmake --build build -j
       - run: ctest --test-dir build --output-on-failure
-      - run: ./build/graphSearch config/graph.yaml
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+
+  install-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DGRAPHSEARCH_BUILD_APP=OFF && cmake --install build --prefix /tmp/gs
+      - run: |
+          mkdir consumer && cd consumer
+          printf 'cmake_minimum_required(VERSION 3.14)\nproject(c CXX)\nfind_package(graphsearch REQUIRED)\nadd_executable(c m.cpp)\ntarget_link_libraries(c graphsearch::graphsearch)\n' > CMakeLists.txt
+          printf '#include <graphsearch/search.hpp>\nint main(){graphsearch::Graph<int> g(1);g.finalize();return graphsearch::dijkstra(g,0,0).found?0:1;}\n' > m.cpp
+          cmake -S . -B b -DCMAKE_PREFIX_PATH=/tmp/gs && cmake --build b && ./b/c

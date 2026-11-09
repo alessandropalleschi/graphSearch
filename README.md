@@ -1,21 +1,32 @@
 # graphSearch
 
-A small, header-only C++20 library implementing **Dijkstra** and **A\*** on weighted directed graphs, with a YAML-driven CLI, tests and benchmarks.
+A header-only C++20 library of shortest-path algorithms on weighted directed graphs, plus a YAML-driven CLI, tests, benchmarks and CI.
+
+| Algorithm | Function | Notes |
+|---|---|---|
+| Dijkstra | `dijkstra` | non-negative weights |
+| A\* | `astar` | optimal with an admissible heuristic; inconsistent heuristics are handled (nodes are re-opened) |
+| Weighted A\* | `weightedAstar` | priority `g + w·h`, cost ≤ `w ×` optimal |
+| Greedy best-first | `greedyBestFirst` | fast, not optimal |
+| Bidirectional Dijkstra | `bidirectionalDijkstra` | pass `g.reversed()` to reuse it across queries |
+| BFS | `bfs` | fewest edges |
+| Bellman-Ford | `bellmanFord` | negative weights, detects reachable negative cycles |
 
 ## Layout
 
 ```
-include/graphsearch/   header-only library (graph.hpp, search.hpp, config.hpp)
-src/                   CLI (main.cpp) and YAML loader (config.cpp)
+include/graphsearch/   header-only library: graph.hpp (CSR graph), search.hpp, heuristics.hpp
+src/                   YAML loader (config.*) and CLI (main.cpp)
 config/graph.yaml      sample problem
-tests/                 unit tests (run with ctest)
-benchmarks/            Dijkstra vs A* benchmark + grid helpers
-examples/              grid_astar.cpp: A* with a custom heuristic
+tests/                 unit tests, run with ctest
+benchmarks/            benchmark harness + grid / random-graph generators
+examples/              grid_astar.cpp
+cmake/                 package config for find_package(graphsearch)
 ```
 
 ## Build
 
-Requires CMake >= 3.14, a C++20 compiler, and yaml-cpp (only for the CLI; disable with `-DGRAPHSEARCH_BUILD_APP=OFF`).
+Requires CMake ≥ 3.14 and a C++20 compiler. yaml-cpp is only needed for the CLI (`-DGRAPHSEARCH_BUILD_APP=OFF` to skip it).
 
 ```bash
 cmake -S . -B build
@@ -23,22 +34,36 @@ cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
 
+Options: `GRAPHSEARCH_BUILD_TESTS`, `GRAPHSEARCH_BUILD_BENCHMARKS`, `GRAPHSEARCH_WERROR`, `GRAPHSEARCH_SANITIZE` (ASan + UBSan).
+
 ## Use as a library
 
 ```cpp
-#include "graphsearch/search.hpp"
+#include <graphsearch/search.hpp>
 using namespace graphsearch;
 
 Graph<double> g(5);
 g.addEdge(0, 1, 1.0);
-// ...
+g.addEdge(1, 4, 2.0);
+g.finalize();                                  // packs edges into CSR; required before searching
+
 auto r = dijkstra(g, 0, 4);                    // r.found, r.path, r.cost, r.expanded
-auto a = astar<double>(g, 0, 4, myHeuristic);  // heuristic: (node, goal) -> estimate
+auto a = astar(g, 0, 4, gridOctile<double>(width));
 ```
 
-Edge weights must be non-negative (enforced). A* is optimal when the heuristic is admissible and consistent.
+Install and consume from another project:
 
-## CLI
+```bash
+cmake --install build --prefix /opt/graphsearch
+```
+```cmake
+find_package(graphsearch REQUIRED)
+target_link_libraries(app PRIVATE graphsearch::graphsearch)
+```
+
+Heuristics: `zeroHeuristic`, `euclidean`, `manhattan`, `octile` (from node coordinates) and `gridOctile` (from ids on a row-major grid). Any `(NodeId, NodeId) -> Cost` callable works.
+
+## CLI and YAML
 
 ```bash
 ./build/graphSearch config/graph.yaml
@@ -48,32 +73,45 @@ Edge weights must be non-negative (enforced). A* is optimal when the heuristic i
 totalNodes: 5
 startNode: 0
 goalNode: 4
+nodes:                       # optional; enables coordinate heuristics
+  - {id: 0, x: 0, y: 0}
 edges:
   - {source: 0, destination: 1, weight: 1}
 searchAlgorithms:
-  - type: "Dijkstra"
-  - type: "AStar"   # zero heuristic here (no coordinates in the YAML), i.e. same as Dijkstra
+  - type: Dijkstra           # Dijkstra | Bidirectional | BellmanFord | BFS
+  - type: AStar              # AStar | WeightedAStar | Greedy
+    heuristic: euclidean     # zero | euclidean | manhattan | octile (default: euclidean if nodes given, else zero)
+  - type: WeightedAStar
+    heuristic: euclidean
+    weight: 1.5
 ```
 
 ## Benchmarks
 
 ```bash
-./build/bench
+./build/bench                 # table
+./build/bench --csv           # or --json, for tracking over time
+./build/bench --quick         # small sizes (used in CI)
 ```
 
-Random N×N 8-connected grids, 20% obstacles, corner to corner, Release build (median of several runs):
+Release build, median of several runs, on this CI-class machine (numbers vary by hardware). Grids are N×N, 8-connected, 20% obstacles, corner to corner.
 
-| grid | Dijkstra ms | A* ms | Dijkstra expanded | A* expanded | speedup |
-|---|---|---|---|---|---|
-| 64×64 | 0.28 | 0.015 | 3,308 | 267 | 18.7× |
-| 256×256 | 7.8 | 0.98 | 52,586 | 4,094 | 8.0× |
-| 1024×1024 | 181 | 31.3 | 839,070 | 77,210 | 5.8× |
+| Scenario | Algorithm | ms | expanded | cost |
+|---|---|---|---|---|
+| grid 1024² | Dijkstra | 136 | 839,070 | 1487.75 |
+| grid 1024² | Bidirectional | 135 | 617,161 | 1487.75 |
+| grid 1024² | **A\*** (octile) | **28** | 77,568 | 1487.75 |
+| grid 1024² | Weighted A\* (w=2) | 1.3 | 1,161 | 1512.49 (+1.7%) |
+| grid 1024² | Greedy | 1.2 | 1,149 | 1530.67 (+2.9%) |
+| random 500k nodes, 2.5M edges | Dijkstra | 176 | 277,668 | 42 |
+| random 500k nodes, 2.5M edges | **Bidirectional** | **1.3** | 793 | 42 |
+| random 500k nodes, 2.5M edges | Bellman-Ford | 259 | 16 passes | 42 |
 
-Both return identical optimal costs. Numbers vary by machine.
+On grids, A\* with a good heuristic wins; on sparse random graphs (no usable heuristic), bidirectional search wins by orders of magnitude. All exact algorithms return identical costs.
 
-## What changed from v1
+## Testing
 
-The previous version did not compile (mismatched `setNodeCost` signatures, template classes split across `.cpp` files, undeclared `Compare` members) and was incorrect: A* skipped stale entries using the wrong field, and each node deep-copied its whole parent chain. It is now a header-only library using integer node ids, parent arrays, lazy-deletion priority queues, input validation, tests and CI.
+`ctest` runs unit tests that cross-check every algorithm against Floyd-Warshall on hundreds of random graphs (including negative weights for Bellman-Ford), check A\* ≡ Dijkstra on random grids, cover an inconsistent-heuristic case, input validation, CSR behaviour, and the YAML loader. CI runs GCC and Clang (Debug and Release, `-Werror`), an ASan/UBSan job, and an install + `find_package` check.
 
 ## License
 
