@@ -11,7 +11,7 @@
 
 namespace graphsearch {
 
-template <typename Cost>
+template <CostType Cost>
 struct SearchResult {
     bool found = false;
     std::vector<NodeId> path;  ///< start ... goal (empty if not found)
@@ -20,12 +20,12 @@ struct SearchResult {
 };
 
 /// h(node, goal) -> admissible estimate of the remaining cost.
-template <typename Cost>
+template <CostType Cost>
 using Heuristic = std::function<Cost(NodeId, NodeId)>;
 
 namespace detail {
 
-template <typename Cost>
+template <CostType Cost>
 SearchResult<Cost> run(const Graph<Cost>& g, NodeId start, NodeId goal,
                        const Heuristic<Cost>* h) {
     SearchResult<Cost> res;
@@ -75,13 +75,13 @@ SearchResult<Cost> run(const Graph<Cost>& g, NodeId start, NodeId goal,
 }  // namespace detail
 
 /// Dijkstra's shortest path, O((V+E) log V).
-template <typename Cost>
+template <CostType Cost>
 SearchResult<Cost> dijkstra(const Graph<Cost>& g, NodeId start, NodeId goal) {
     return detail::run<Cost>(g, start, goal, nullptr);
 }
 
 /// A* shortest path. The heuristic must be admissible and consistent for optimal results.
-template <typename Cost>
+template <CostType Cost>
 SearchResult<Cost> astar(const Graph<Cost>& g, NodeId start, NodeId goal,
                          const Heuristic<Cost>& h) {
     return detail::run<Cost>(g, start, goal, &h);

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(graphSearch VERSION 2.0.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release)
@@ -15,7 +15,7 @@ option(GRAPHSEARCH_BUILD_BENCHMARKS "Build benchmarks" ON)
 add_library(graphsearch INTERFACE)
 add_library(graphsearch::graphsearch ALIAS graphsearch)
 target_include_directories(graphsearch INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_features(graphsearch INTERFACE cxx_std_17)
+target_compile_features(graphsearch INTERFACE cxx_std_20)
 
 function(graphsearch_warnings target)
   if(MSVC)

@@ -1,6 +1,6 @@
 # graphSearch
 
-A small, header-only C++17 library implementing **Dijkstra** and **A\*** on weighted directed graphs, with a YAML-driven CLI, tests and benchmarks.
+A small, header-only C++20 library implementing **Dijkstra** and **A\*** on weighted directed graphs, with a YAML-driven CLI, tests and benchmarks.
 
 ## Layout
 
@@ -15,7 +15,7 @@ examples/              grid_astar.cpp: A* with a custom heuristic
 
 ## Build
 
-Requires CMake >= 3.14, a C++17 compiler, and yaml-cpp (only for the CLI; disable with `-DGRAPHSEARCH_BUILD_APP=OFF`).
+Requires CMake >= 3.14, a C++20 compiler, and yaml-cpp (only for the CLI; disable with `-DGRAPHSEARCH_BUILD_APP=OFF`).
 
 ```bash
 cmake -S . -B build

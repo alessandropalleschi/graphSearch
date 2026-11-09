@@ -1,22 +1,28 @@
 #pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 namespace graphsearch {
 
 using NodeId = std::size_t;
 
+/// Edge costs must be arithmetic (int, float, double, ...).
+template <typename T>
+concept CostType = std::is_arithmetic_v<T>;
+
 /// Directed, weighted edge.
-template <typename Cost>
+template <CostType Cost>
 struct Edge {
     NodeId to;
     Cost weight;
 };
 
 /// Directed weighted graph stored as an adjacency list over dense node ids [0, size()).
-template <typename Cost>
+template <CostType Cost>
 class Graph {
 public:
     explicit Graph(std::size_t nodeCount = 0) : adj_(nodeCount) {}
