@@ -27,6 +27,7 @@ struct Problem {
 Problem loadProblem(const std::string& path);
 
 /// Runs one configured algorithm. Throws std::invalid_argument on unknown type/heuristic.
-SearchResult<double> run(const Problem& p, const AlgorithmSpec& spec);
+/// `trace` (optional) receives expanded nodes in order; Bellman-Ford does not report one.
+SearchResult<double> run(const Problem& p, const AlgorithmSpec& spec, std::vector<NodeId>* trace = nullptr);
 
 }  // namespace graphsearch

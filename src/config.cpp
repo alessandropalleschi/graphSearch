@@ -49,16 +49,17 @@ static Heuristic<double> makeHeuristic(const Problem& p, const std::string& name
     throw std::invalid_argument("unknown heuristic: " + h);
 }
 
-SearchResult<double> run(const Problem& p, const AlgorithmSpec& s) {
+SearchResult<double> run(const Problem& p, const AlgorithmSpec& s, std::vector<NodeId>* trace) {
     const auto& g = p.graph;
-    if (s.type == "Dijkstra") return dijkstra(g, p.start, p.goal);
-    if (s.type == "BFS") return bfs(g, p.start, p.goal);
+    if (s.type == "Dijkstra") return dijkstra(g, p.start, p.goal, trace);
+    if (s.type == "BFS") return bfs(g, p.start, p.goal, trace);
     if (s.type == "BellmanFord") return bellmanFord(g, p.start, p.goal);
-    if (s.type == "Bidirectional") return bidirectionalDijkstra(g, p.start, p.goal);
-    if (s.type == "AStar") return astar(g, p.start, p.goal, makeHeuristic(p, s.heuristic));
+    if (s.type == "Bidirectional") return bidirectionalDijkstra(g, p.start, p.goal, trace);
+    if (s.type == "AStar") return astar(g, p.start, p.goal, makeHeuristic(p, s.heuristic), trace);
     if (s.type == "WeightedAStar")
-        return weightedAstar(g, p.start, p.goal, makeHeuristic(p, s.heuristic), s.weight);
-    if (s.type == "Greedy") return greedyBestFirst(g, p.start, p.goal, makeHeuristic(p, s.heuristic));
+        return weightedAstar(g, p.start, p.goal, makeHeuristic(p, s.heuristic), s.weight, trace);
+    if (s.type == "Greedy")
+        return greedyBestFirst(g, p.start, p.goal, makeHeuristic(p, s.heuristic), trace);
     throw std::invalid_argument("unknown search algorithm: " + s.type);
 }
 

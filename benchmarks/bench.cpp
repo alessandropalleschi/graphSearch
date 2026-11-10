@@ -5,9 +5,11 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <string>
 #include <vector>
 
+#include "graphsearch/svg.hpp"
 #include "grid.hpp"
 
 using namespace graphsearch;
@@ -37,11 +39,13 @@ static void measure(const std::string& scenario, const std::string& algo, const 
 
 int main(int argc, char** argv) {
     bool quick = false, csv = false, json = false;
+    std::string svgOut;
     for (int i = 1; i < argc; ++i) {
         if (!std::strcmp(argv[i], "--quick")) quick = true;
         else if (!std::strcmp(argv[i], "--csv")) csv = true;
         else if (!std::strcmp(argv[i], "--json")) json = true;
-        else { std::fprintf(stderr, "usage: bench [--quick] [--csv|--json]\n"); return 2; }
+        else if (!std::strcmp(argv[i], "--svg") && i + 1 < argc) svgOut = argv[++i];
+        else { std::fprintf(stderr, "usage: bench [--quick] [--csv|--json] [--svg chart.svg]\n"); return 2; }
     }
 
     const std::vector<std::size_t> gridSizes = quick ? std::vector<std::size_t>{64, 128}
@@ -73,6 +77,23 @@ int main(int argc, char** argv) {
         measure(sc, "bidirectional", g, reps, [&] { return bidirectionalDijkstra(g, rev, 0, n / 2); });
         measure(sc, "bfs", g, reps, [&] { return bfs(g, 0, n / 2); });
         measure(sc, "bellman_ford", g, reps, [&] { return bellmanFord(g, 0, n / 2); });
+    }
+
+    if (!svgOut.empty()) {  // chart the largest grid and the largest random graph
+        std::vector<svg::BarGroup> groups;
+        for (const char* prefix : {"grid", "random"}) {
+            std::string pick;
+            for (const auto& r : rows)
+                if (r.scenario.rfind(prefix, 0) == 0) pick = r.scenario;  // rows are in increasing size
+            svg::BarGroup gr{pick, {}};
+            int c = 0;
+            for (const auto& r : rows)
+                if (r.scenario == pick)
+                    gr.bars.push_back({r.algo, r.ms, svg::thousands(r.expanded) + " expanded", c++});
+            groups.push_back(std::move(gr));
+        }
+        std::ofstream(svgOut) << svg::barChart(groups, "Median search time (lower is better)",
+                                               "Log scale. Release build; numbers vary by hardware.");
     }
 
     if (csv) {
