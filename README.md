@@ -12,15 +12,38 @@ A header-only C++20 library of shortest-path algorithms on weighted directed gra
 | BFS | `bfs` | fewest edges |
 | Bellman-Ford | `bellmanFord` | negative weights, detects reachable negative cycles |
 
+## Visualizations
+
+![Search algorithms compared on a grid](docs/images/grid_comparison.svg)
+
+Cells are shaded by when each algorithm expanded them (light = early, dark = late), so you can see Dijkstra flooding in every direction, bidirectional search meeting in the middle, and A\* hugging the path. Weighted A\* and greedy expand so few cells that they hide under the path line.
+
+![Median search time](docs/images/benchmarks.svg)
+
+For graphs with coordinates, the CLI can draw the graph and highlight the path:
+
+![Shortest path on the sample graph](docs/images/graph.svg)
+
+Regenerate all three (plain SVG, no extra dependencies):
+
+```bash
+./build/visualize_grid 64 0.2 42 docs/images/grid_comparison.svg   # size, obstacle ratio, seed, output
+./build/graphSearch config/graph.yaml --svg docs/images/graph.svg
+./build/bench --svg docs/images/benchmarks.svg
+```
+
+Every search function accepts an optional `std::vector<NodeId>* trace` that receives the expanded nodes in order, and `graphsearch/svg.hpp` has the renderers, so you can draw your own searches.
+
 ## Layout
 
 ```
-include/graphsearch/   header-only library: graph.hpp (CSR graph), search.hpp, heuristics.hpp
+include/graphsearch/   header-only library: graph.hpp (CSR graph), search.hpp, heuristics.hpp, svg.hpp
 src/                   YAML loader (config.*) and CLI (main.cpp)
 config/graph.yaml      sample problem
 tests/                 unit tests, run with ctest
 benchmarks/            benchmark harness + grid / random-graph generators
-examples/              grid_astar.cpp
+examples/              grid_astar.cpp, visualize_grid.cpp
+docs/images/           generated SVGs used in this README
 cmake/                 package config for find_package(graphsearch)
 ```
 

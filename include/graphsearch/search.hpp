@@ -61,7 +61,8 @@ using MinQueue = std::priority_queue<Entry<P, C>, std::vector<Entry<P, C>>, std:
 // re-opened if a cheaper route is found later (needed for inconsistent heuristics).
 template <CostType Cost>
 SearchResult<Cost> bestFirst(const Graph<Cost>& g, NodeId start, NodeId goal,
-                             const Heuristic<Cost>* h, double weight, bool greedy) {
+                             const Heuristic<Cost>* h, double weight, bool greedy,
+                             std::vector<NodeId>* trace) {
     validate(g, start, goal);
     requireNonNegative(g);
     SearchResult<Cost> res;
@@ -83,6 +84,7 @@ SearchResult<Cost> bestFirst(const Graph<Cost>& g, NodeId start, NodeId goal,
         open.pop();
         if (cur.g > dist[cur.node]) continue;  // stale
         ++res.expanded;
+        if (trace) trace->push_back(cur.node);
         if (cur.node == goal) {
             res.found = true;
             res.cost = cur.g;
@@ -103,36 +105,44 @@ SearchResult<Cost> bestFirst(const Graph<Cost>& g, NodeId start, NodeId goal,
 
 }  // namespace detail
 
+/// All searches take an optional `trace`: when non-null, expanded nodes are appended in order
+/// (used for visualisation).
+///
 /// Dijkstra's shortest path, O((V+E) log V). Non-negative weights only.
 template <CostType Cost>
-SearchResult<Cost> dijkstra(const Graph<Cost>& g, NodeId start, NodeId goal) {
-    return detail::bestFirst<Cost>(g, start, goal, nullptr, 1.0, false);
+SearchResult<Cost> dijkstra(const Graph<Cost>& g, NodeId start, NodeId goal,
+                            std::vector<NodeId>* trace = nullptr) {
+    return detail::bestFirst<Cost>(g, start, goal, nullptr, 1.0, false, trace);
 }
 
 /// A*: optimal when the heuristic is admissible.
 template <CostType Cost>
-SearchResult<Cost> astar(const Graph<Cost>& g, NodeId start, NodeId goal, const Heuristic<Cost>& h) {
-    return detail::bestFirst<Cost>(g, start, goal, &h, 1.0, false);
+SearchResult<Cost> astar(const Graph<Cost>& g, NodeId start, NodeId goal, const Heuristic<Cost>& h,
+                         std::vector<NodeId>* trace = nullptr) {
+    return detail::bestFirst<Cost>(g, start, goal, &h, 1.0, false, trace);
 }
 
 /// Weighted A* (priority g + w*h, w >= 1): expands fewer nodes; cost <= w * optimal.
 template <CostType Cost>
 SearchResult<Cost> weightedAstar(const Graph<Cost>& g, NodeId start, NodeId goal,
-                                 const Heuristic<Cost>& h, double weight) {
+                                 const Heuristic<Cost>& h, double weight,
+                                 std::vector<NodeId>* trace = nullptr) {
     if (weight < 1.0) throw std::invalid_argument("weight must be >= 1");
-    return detail::bestFirst<Cost>(g, start, goal, &h, weight, false);
+    return detail::bestFirst<Cost>(g, start, goal, &h, weight, false, trace);
 }
 
 /// Greedy best-first search (priority h only): fast, not optimal.
 template <CostType Cost>
 SearchResult<Cost> greedyBestFirst(const Graph<Cost>& g, NodeId start, NodeId goal,
-                                   const Heuristic<Cost>& h) {
-    return detail::bestFirst<Cost>(g, start, goal, &h, 1.0, true);
+                                   const Heuristic<Cost>& h,
+                                   std::vector<NodeId>* trace = nullptr) {
+    return detail::bestFirst<Cost>(g, start, goal, &h, 1.0, true, trace);
 }
 
 /// Breadth-first search: fewest edges, weights ignored. `cost` is the edge count.
 template <CostType Cost>
-SearchResult<Cost> bfs(const Graph<Cost>& g, NodeId start, NodeId goal) {
+SearchResult<Cost> bfs(const Graph<Cost>& g, NodeId start, NodeId goal,
+                       std::vector<NodeId>* trace = nullptr) {
     detail::validate(g, start, goal);
     SearchResult<Cost> res;
     std::vector<NodeId> parent(g.size(), detail::none);
@@ -144,6 +154,7 @@ SearchResult<Cost> bfs(const Graph<Cost>& g, NodeId start, NodeId goal) {
         const NodeId u = q.front();
         q.pop();
         ++res.expanded;
+        if (trace) trace->push_back(u);
         if (u == goal) {
             res.found = true;
             res.path = detail::buildPath(parent, goal);
@@ -202,7 +213,8 @@ SearchResult<Cost> bellmanFord(const Graph<Cost>& g, NodeId start, NodeId goal) 
 /// Bidirectional Dijkstra given the reversed graph (g.reversed()); reuse it across many queries.
 template <CostType Cost>
 SearchResult<Cost> bidirectionalDijkstra(const Graph<Cost>& g, const Graph<Cost>& rev,
-                                         NodeId start, NodeId goal) {
+                                         NodeId start, NodeId goal,
+                                         std::vector<NodeId>* trace = nullptr) {
     detail::validate(g, start, goal);
     detail::requireNonNegative(g);
     if (rev.size() != g.size() || !rev.finalized()) throw std::invalid_argument("bad reverse graph");
@@ -239,6 +251,7 @@ SearchResult<Cost> bidirectionalDijkstra(const Graph<Cost>& g, const Graph<Cost>
         const auto cur = q[s].top();
         q[s].pop();
         ++res.expanded;
+        if (trace) trace->push_back(cur.node);
         for (const auto& e : graph[s]->neighbours(cur.node)) {
             const Cost nd = cur.g + e.weight;
             if (nd < dist[s][e.to]) {
@@ -261,9 +274,10 @@ SearchResult<Cost> bidirectionalDijkstra(const Graph<Cost>& g, const Graph<Cost>
 }
 
 template <CostType Cost>
-SearchResult<Cost> bidirectionalDijkstra(const Graph<Cost>& g, NodeId start, NodeId goal) {
+SearchResult<Cost> bidirectionalDijkstra(const Graph<Cost>& g, NodeId start, NodeId goal,
+                                         std::vector<NodeId>* trace = nullptr) {
     detail::validate(g, start, goal);
-    return bidirectionalDijkstra(g, g.reversed(), start, goal);
+    return bidirectionalDijkstra(g, g.reversed(), start, goal, trace);
 }
 
 }  // namespace graphsearch

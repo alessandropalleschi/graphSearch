@@ -52,6 +52,9 @@ endif()
 
 add_executable(grid_astar examples/grid_astar.cpp)
 target_link_libraries(grid_astar PRIVATE graphsearch)
+add_executable(visualize_grid examples/visualize_grid.cpp)
+target_link_libraries(visualize_grid PRIVATE graphsearch)
+graphsearch_warnings(visualize_grid)
 
 # ---- Tests --------------------------------------------------------------------------------
 if(GRAPHSEARCH_BUILD_TESTS)

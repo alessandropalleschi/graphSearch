@@ -2,6 +2,7 @@
 #include <random>
 
 #include "../benchmarks/grid.hpp"
+#include "graphsearch/svg.hpp"
 #include "check.hpp"
 
 using namespace graphsearch;
@@ -210,6 +211,37 @@ TEST(heuristics_from_coordinates) {
     CHECK(manhattan<double>(pts)(0, 1) == 7.0);
     CHECK(octile<double>(pts)(0, 2) == std::sqrt(2.0));
     CHECK(euclidean<int>(pts)(0, 1) == 5);
+}
+
+TEST(trace_records_expansions_in_order) {
+    auto grid = gridutil::makeGrid(20, 20, 0.2, 3);
+    std::vector<NodeId> tr;
+    auto r = dijkstra(grid.g, 0, 399, &tr);
+    CHECK(r.found && tr.size() == r.expanded && tr.front() == 0 && tr.back() == 399);
+    std::vector<NodeId> tb;
+    auto b = bidirectionalDijkstra(grid.g, 0, 399, &tb);
+    CHECK(tb.size() == b.expanded);
+    std::vector<NodeId> tf;
+    bfs(grid.g, 0, 399, &tf);
+    CHECK(!tf.empty() && tf.front() == 0);
+}
+
+TEST(svg_output_is_well_formed) {
+    auto grid = gridutil::makeGrid(16, 16, 0.2, 1);
+    svg::GridPanel p;
+    p.title = "A & B <x>";
+    auto r = dijkstra(grid.g, 0, 255, &p.trace);
+    p.found = r.found; p.path = r.path; p.cost = r.cost; p.expanded = r.expanded;
+    const std::string s = svg::gridComparison(16, 16, grid.blocked, {p}, 1, 5, "t", "sub");
+    CHECK(s.rfind("<svg", 0) == 0 && s.find("</svg>") != std::string::npos);
+    CHECK(s.find("<polyline") != std::string::npos);
+    CHECK(s.find("A &amp; B &lt;x&gt;") != std::string::npos);  // escaped
+    std::vector<Point> pts{{0, 0}, {1, 1}};
+    Graph<double> g(2);
+    g.addEdge(0, 1, 2);
+    g.finalize();
+    CHECK(svg::graphDiagram(g, pts, {0, 1}, "g").find("<line") != std::string::npos);
+    CHECK(svg::barChart({{"s", {{"a", 1.5, "n", 0}, {"b", 20, "n", 1}}}}, "h", "u").find("<rect") != std::string::npos);
 }
 
 int main() { return runAll(); }

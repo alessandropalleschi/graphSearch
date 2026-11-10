@@ -13,6 +13,7 @@ namespace gridutil {
 struct Grid {
     std::size_t w, h;
     graphsearch::Graph<double> g;
+    std::vector<char> blocked;
     std::size_t id(std::size_t x, std::size_t y) const { return y * w + x; }
 };
 
@@ -23,7 +24,7 @@ inline Grid makeGrid(std::size_t w, std::size_t h, double obstacle, std::uint32_
     std::vector<char> blocked(w * h, 0);
     for (auto& b : blocked) b = u(rng) < obstacle;
     blocked[0] = blocked[w * h - 1] = 0;
-    Grid grid{w, h, graphsearch::Graph<double>(w * h)};
+    Grid grid{w, h, graphsearch::Graph<double>(w * h), blocked};
     for (std::size_t y = 0; y < h; ++y)
         for (std::size_t x = 0; x < w; ++x) {
             if (blocked[grid.id(x, y)]) continue;
