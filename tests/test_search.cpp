@@ -244,4 +244,28 @@ TEST(svg_output_is_well_formed) {
     CHECK(svg::barChart({{"s", {{"a", 1.5, "n", 0}, {"b", 20, "n", 1}}}}, "h", "u").find("<rect") != std::string::npos);
 }
 
+TEST(svg_animation_output) {
+    auto grid = gridutil::makeGrid(16, 16, 0.2, 1);
+    std::vector<svg::GridPanel> panels(2);
+    for (std::size_t i = 0; i < 2; ++i) {
+        auto r = i ? astar(grid.g, 0, 255, gridOctile<double>(16), &panels[i].trace)
+                   : dijkstra(grid.g, 0, 255, &panels[i].trace);
+        panels[i].found = r.found; panels[i].path = r.path; panels[i].cost = r.cost; panels[i].expanded = r.expanded;
+    }
+    const std::string a = svg::gridComparison(16, 16, grid.blocked, panels, 2, 5, "t", "s", true);
+    CHECK(a.find("@keyframes a0") != std::string::npos && a.find("@keyframes pk1") != std::string::npos);
+    CHECK(a.find("infinite") != std::string::npos && a.find("prefers-reduced-motion") != std::string::npos);
+    CHECK(svg::gridComparison(16, 16, grid.blocked, panels, 2, 5, "t", "s").find("@keyframes") == std::string::npos);
+
+    std::vector<Point> pts{{0, 0}, {1, 0}, {2, 0}};
+    Graph<double> g(3);
+    g.addEdge(0, 1, 1); g.addEdge(1, 2, 1);
+    g.finalize();
+    std::vector<NodeId> tr;
+    auto r = dijkstra(g, 0, 2, &tr);
+    const std::string d = svg::graphDiagram(g, pts, r.path, "g", &tr);
+    CHECK(d.find("@keyframes n1") != std::string::npos && d.find("class=\"pe\"") != std::string::npos);
+    CHECK(svg::graphDiagram(g, pts, r.path, "g").find("@keyframes") == std::string::npos);
+}
+
 int main() { return runAll(); }

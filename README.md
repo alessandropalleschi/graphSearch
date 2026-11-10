@@ -18,6 +18,18 @@ A header-only C++20 library of shortest-path algorithms on weighted directed gra
 
 Cells are shaded by when each algorithm expanded them (light = early, dark = late), so you can see Dijkstra flooding in every direction, bidirectional search meeting in the middle, and A\* hugging the path. Weighted A\* and greedy expand so few cells that they hide under the path line.
 
+### Animated
+
+![Animated search comparison](docs/images/grid_animation.svg)
+
+All panels advance at the same speed (equal expansions per tick), so you can watch weighted A\* and greedy finish almost instantly, A\* reach the goal while Dijkstra and BFS are still flooding, and bidirectional search grow from both ends. It loops, and respects `prefers-reduced-motion` (shows the final frame instead).
+
+![Animated Dijkstra on the sample graph](docs/images/graph_animation.svg)
+
+Nodes light up in expansion order (the node being expanded is ringed in blue), then the shortest path is revealed.
+
+### Benchmarks
+
 ![Median search time](docs/images/benchmarks.svg)
 
 For graphs with coordinates, the CLI can draw the graph and highlight the path:
@@ -30,6 +42,10 @@ Regenerate all three (plain SVG, no extra dependencies):
 ./build/visualize_grid 64 0.2 42 docs/images/grid_comparison.svg   # size, obstacle ratio, seed, output
 ./build/graphSearch config/graph.yaml --svg docs/images/graph.svg
 ./build/bench --svg docs/images/benchmarks.svg
+
+# animated versions
+./build/visualize_grid 48 0.2 42 docs/images/grid_animation.svg --animate
+./build/graphSearch config/graph.yaml --svg docs/images/graph_animation.svg --animate
 ```
 
 Every search function accepts an optional `std::vector<NodeId>* trace` that receives the expanded nodes in order, and `graphsearch/svg.hpp` has the renderers, so you can draw your own searches.

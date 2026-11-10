@@ -1,5 +1,5 @@
 // Renders Dijkstra / bidirectional / A* / weighted A* / greedy / BFS side by side on one grid.
-//   visualize_grid [size=64] [obstacle=0.2] [seed=42] [out=grid_comparison.svg]
+//   visualize_grid [size=64] [obstacle=0.2] [seed=42] [out=grid_comparison.svg] [--animate]
 #include <fstream>
 #include <iostream>
 
@@ -9,10 +9,16 @@
 using namespace graphsearch;
 
 int main(int argc, char** argv) {
-    const std::size_t n = argc > 1 ? std::stoul(argv[1]) : 64;
-    const double obstacle = argc > 2 ? std::stod(argv[2]) : 0.2;
-    const unsigned seed = argc > 3 ? std::stoul(argv[3]) : 42;
-    const std::string out = argc > 4 ? argv[4] : "grid_comparison.svg";
+    std::vector<std::string> args;
+    bool animate = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--animate") animate = true;
+        else args.push_back(argv[i]);
+    }
+    const std::size_t n = args.size() > 0 ? std::stoul(args[0]) : 64;
+    const double obstacle = args.size() > 1 ? std::stod(args[1]) : 0.2;
+    const unsigned seed = args.size() > 2 ? std::stoul(args[2]) : 42;
+    const std::string out = args.size() > 3 ? args[3] : "grid_comparison.svg";
 
     const auto grid = gridutil::makeGrid(n, n, obstacle, seed);
     const NodeId s = 0, t = n * n - 1;
@@ -38,6 +44,6 @@ int main(int argc, char** argv) {
         n, n, grid.blocked, panels, 3, cell,
         "Search algorithms on a " + std::to_string(n) + "×" + std::to_string(n) + " grid",
         std::to_string(int(obstacle * 100)) + "% random obstacles, 8-connected, start top-left → goal bottom-right. "
-        "Cells are shaded by when they were expanded.");
+        "Cells are shaded by when they were expanded.", animate);
     std::cout << "wrote " << out << '\n';
 }
