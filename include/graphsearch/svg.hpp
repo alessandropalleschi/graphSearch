@@ -260,7 +260,10 @@ std::string graphDiagram(const Graph<Cost>& g, const std::vector<Point>& pts,
         auto pct = [&](double t) { return num(t / T * 100, 3) + "%"; };
         const std::string end = pct(T - 0.5), ps = pct(pathStart);
         anim << "<style>@keyframes pe{0%," << ps << "{opacity:0}" << pct(pathStart + 0.4) << "," << end
-             << "{opacity:1}100%{opacity:0}}.pe{animation:pe " << num(T, 3) << "s linear infinite}";
+             << "{opacity:1}100%{opacity:0}}.pe{animation:pe " << num(T, 3) << "s linear infinite}"
+             << "@keyframes pl{0%," << ps << "{fill:#4b5563;font-weight:400}" << pct(pathStart + 0.001) << "," << end
+             << "{fill:#c2410c;font-weight:600}100%{fill:#4b5563;font-weight:400}}.pl{animation:pl " << num(T, 3)
+             << "s linear infinite}";
         for (NodeId n = 0; n < g.size(); ++n) {
             if (step[n] < 0 || (!path.empty() && (n == path.front() || n == path.back()))) continue;
             const double a = step[n] * stepSecs, b = a + stepSecs;
@@ -272,7 +275,7 @@ std::string graphDiagram(const Graph<Cost>& g, const std::vector<Point>& pts,
                  << ";stroke-width:2px}100%{fill:#fff;stroke:#6b7280;stroke-width:2px}}.n" << n << "{animation:n" << n << ' '
                  << num(T, 3) << "s linear infinite}";
         }
-        anim << "@media (prefers-reduced-motion:reduce){[class*=\"n\"],.pe{animation:none!important}}</style>";
+        anim << "@media (prefers-reduced-motion:reduce){[class*=\"n\"],.pe,.pl{animation:none!important}}</style>";
     }
 
     std::ostringstream o;
@@ -289,8 +292,11 @@ std::string graphDiagram(const Graph<Cost>& g, const std::vector<Point>& pts,
     for (int pass = 0; pass < 2; ++pass)
         for (NodeId u = 0; u < g.size(); ++u)
             for (const auto& e : g.neighbours(u)) {
-                const bool hot = onPath.count({u, e.to}) > 0;
-                if (hot != (pass == 1)) continue;
+                const bool onP = onPath.count({u, e.to}) > 0;
+                // Animated: every edge is drawn grey up front (so the graph looks connected),
+                // and the orange path overlays fade in later.
+                const bool hot = animate ? pass == 1 : onP;
+                if (animate ? (pass == 1 && !onP) : onP != (pass == 1)) continue;
                 double dx = X(e.to) - X(u), dy = Y(e.to) - Y(u);
                 const double len = std::max(1e-9, std::hypot(dx, dy));
                 dx /= len; dy /= len;
@@ -303,9 +309,10 @@ std::string graphDiagram(const Graph<Cost>& g, const std::vector<Point>& pts,
                   << num(y2) << "\" stroke=\"" << (hot ? "#f97316" : "#9ca3af") << "\" stroke-width=\""
                   << (hot ? 3 : 1.5) << "\" marker-end=\"url(#" << (hot ? 'b' : 'a') << ")\"/>";
                 const double mx = (x1 + x2) / 2 + ox * 2.2, my = (y1 + y2) / 2 + oy * 2.2;
-                o << "<text class=\"" << (animate && hot ? "s pe" : "s") << "\" x=\"" << num(mx) << "\" y=\"" << num(my + 4)
+                if (animate && pass == 1) continue;  // labels are drawn once, in the grey pass
+                o << "<text class=\"" << (animate && onP ? "s pl" : "s") << "\" x=\"" << num(mx) << "\" y=\"" << num(my + 4)
                   << "\" text-anchor=\"middle\" style=\"paint-order:stroke;stroke:#fff;stroke-width:3px;"
-                  << (hot ? "fill:#c2410c;font-weight:600" : "") << "\">" << num(double(e.weight), 1) << "</text>";
+                  << (!animate && hot ? "fill:#c2410c;font-weight:600" : "") << "\">" << num(double(e.weight), 1) << "</text>";
             }
     for (NodeId n = 0; n < g.size(); ++n) {
         const bool hot = nodesOnPath.count(n) > 0;
